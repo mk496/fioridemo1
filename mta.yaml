@@ -1,0 +1,93 @@
+_schema-version: "3.2"
+ID: FioriDemo1
+description: FioriDemo1
+version: 0.0.1
+modules:
+- name: FioriDemo1-dest-content
+  type: com.sap.application.content
+  requires:
+  - name: FioriDemo1-destination-service
+    parameters:
+      content-target: true
+  - name: FioriDemo1-repo-host
+    parameters:
+      service-key:
+        name: FioriDemo1-repo-host-key
+  - name: FioriDemo1-uaa
+    parameters:
+      service-key:
+        name: FioriDemo1-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: FioriDemo1_repo_host
+          ServiceInstanceName: FioriDemo1-html5-srv
+          ServiceKeyName: FioriDemo1-repo-host-key
+          sap.cloud.service: FioriDemo1
+        - Authentication: OAuth2UserTokenExchange
+          Name: FioriDemo1_uaa
+          ServiceInstanceName: FioriDemo1-xsuaa-srv
+          ServiceKeyName: FioriDemo1-uaa-key
+          sap.cloud.service: FioriDemo1
+        existing_destinations_policy: update
+  build-parameters:
+    no-source: true
+- name: FioriDemo1-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: FioriDemo1-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - northwindnorthwind.zip
+      name: northwindnorthwind
+      target-path: resources/
+- name: northwindnorthwind
+  type: html5
+  path: northwind
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: FioriDemo1-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: FioriDemo1-xsuaa-srv
+    service-plan: application
+- name: FioriDemo1-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: FioriDemo1-destination-service
+    service-plan: lite
+- name: FioriDemo1-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: FioriDemo1-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
